@@ -1,13 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
 import InvoiceService from '../services/invoiceService';
-import { Invoice } from '../types/invoice';
 
 const listInvoices = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const state = req.query.status as string | undefined;
+    const status = req.query.status as string | undefined;
     const operator = req.query.operator as string | undefined;
-    const id   = (req as any).user!.id; 
-    const invoices = await InvoiceService.list(id, state,operator);
+    const userId = (req as any).user!.id;
+
+    const invoices = await InvoiceService.list(userId, status, operator);
     res.json(invoices);
   } catch (err) {
     next(err);
@@ -17,24 +17,14 @@ const listInvoices = async (req: Request, res: Response, next: NextFunction) => 
 const setPaymentCard = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const invoiceId = req.params.id;
-    const paymentBrand = req.body.paymentBrand;
-    const ccNumber = req.body.ccNumber;
-    const ccv = req.body.ccv;
-    const expirationDate = req.body.expirationDate;
+    const { paymentBrand, ccNumber, ccv, expirationDate } = req.body;
+    const userId = (req as any).user!.id;
 
     if (!paymentBrand || !ccNumber || !ccv || !expirationDate) {
       return res.status(400).json({ error: 'Missing payment details' });
     }
-    const id   = (req as any).user!.id; 
-    await InvoiceService.setPaymentCard(
-      id,
-      invoiceId,
-      paymentBrand,
-      ccNumber,
-      ccv,
-      expirationDate
-    );
 
+    await InvoiceService.setPaymentCard(userId, invoiceId, paymentBrand, ccNumber, ccv, expirationDate);
     res.status(200).json({ message: 'Payment successful' });
   } catch (err) {
     next(err);
@@ -45,15 +35,17 @@ const getInvoicePDF = async (req: Request, res: Response, next: NextFunction) =>
   try {
     const invoiceId = req.params.id;
     const pdfName = req.query.pdfName as string | undefined;
+    const userId = (req as any).user!.id;
 
     if (!pdfName) {
       return res.status(400).json({ error: 'Missing parameter pdfName' });
     }
-    const pdf = await InvoiceService.getReceipt(invoiceId, pdfName);
-    // return the pdf as a binary response
-    res.setHeader('Content-Type', 'application/pdf');
-    res.send(pdf);
 
+    // Ahora usamos getReceipt validando la propiedad del usuario
+    const pdfBuffer = await InvoiceService.getReceipt(invoiceId, pdfName, userId);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.send(pdfBuffer);
   } catch (err) {
     next(err);
   }
@@ -62,9 +54,11 @@ const getInvoicePDF = async (req: Request, res: Response, next: NextFunction) =>
 const getInvoice = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const invoiceId = req.params.id;
-    const invoice = await InvoiceService.getInvoice(invoiceId);
-    res.status(200).json(invoice);
+    const userId = (req as any).user!.id;
 
+    // Usamos getInvoiceForUser para asegurar que solo devuelve facturas del usuario
+    const invoice = await InvoiceService.getInvoiceForUser(invoiceId, userId);
+    res.status(200).json(invoice);
   } catch (err) {
     next(err);
   }
