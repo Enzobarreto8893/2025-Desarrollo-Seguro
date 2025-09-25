@@ -2,7 +2,7 @@
 
 
 <p align="center">
-  <img src="./imagenes/imagenes/Logo_UCU.png"
+  <img src="./imagenes/Logo_UCU.png"
 <center>
 
 
@@ -286,4 +286,5 @@ if (!bcrypt.compareSync(password, user.password)) throw new Error('Invalid passw
   <img src="./imagenes/Captura de pantalla 2025-09-21 a la(s) 10.33.32 p. m..png"
 <center>
 ⸻
+
 
